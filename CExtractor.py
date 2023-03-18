@@ -13,12 +13,14 @@ import pathlib
 CurrentDir = pathlib.Path(__file__).parent.absolute()
 
 chrome_options = Options()
-# chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless")
 chrome_options.add_argument("log-level=3")
 chrome_options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
 driver = webdriver.Chrome(ChromeDriverManager().install(),chrome_options=chrome_options)
 while True:
 	driver.get("https://www.google.com/recaptcha/api2/demo")
+	# driver.get("https://recaptcha-demo.appspot.com/recaptcha-v2-checkbox-explicit.php")
+	# driver.get("https://www.nulled.to/index.php?app=core&module=global&section=register")
 	# click captcha box (its in a frame idk)
 	driver.switch_to.frame(0)
 	try:
@@ -30,12 +32,18 @@ while True:
 	driver.switch_to.parent_frame()
 	# go into captcha frame
 	iframes = driver.find_elements(By.XPATH,"//iframe")
-	driver.switch_to.frame(iframes[len(iframes) - 1])
+	# for iframe in iframes:
+	# 	print(iframe.accessible_name)
+	print(f"iframe name:{iframes[len(iframes) - 1].accessible_name}")
+	driver.switch_to.frame(iframes[len(iframes) - 1]) # instead switch to the iframe with reCAPTCHA as .accessible_name
 	# get image
 	try:
-		prompt = WebDriverWait(driver, 1).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".rc-imageselect-desc-no-canonical")))
+		prompt = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".rc-imageselect-desc-no-canonical")))
 	except TimeoutException:
-		prompt = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".rc-imageselect-desc")))
+		try:
+			prompt = WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".rc-imageselect-desc")))
+		except TimeoutException:
+			input("wtf")
 	print("Prompt:", str(prompt.text).replace("\n"," "))
 	# if "once there are none left" in prompt.text:
 	# 	input("THIS SHOULD BE AN ANNOYING ONE (Images fade out and new ones appear)")

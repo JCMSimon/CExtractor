@@ -63,18 +63,21 @@ class CaptchaExtractorSelenium():
 		driver.switch_to.frame(0)
 		try:
 			captcha = WebDriverWait(driver, self.timeout).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".recaptcha-checkbox-border"))).click()
+			time.sleep(5)
 		except TimeoutException:
 			print("didnt work")
 			return None
 		# switch back
 		driver.switch_to.parent_frame()
+		driver.maximize_window()
 		# get the right iframe
 		iframes = driver.find_elements(By.XPATH,"//iframe")
-		for iframe in iframes:
-			print(f"'{iframe.accessible_name}'")
-
-
-
+		iframeIWant = [iframe for iframe in iframes if "captcha" in iframe.accessible_name.lower()]
+		driver.switch_to.frame(2)
+		whatiwantasimg = driver.find_elements(By.TAG_NAME,"div")
+		with open('img.txt', 'w') as f:
+			f.write(whatiwantasimg[0].screenshot_as_base64)
+		input("Im waiting now")
 
 
 
@@ -82,15 +85,16 @@ class CaptchaExtractorSelenium():
 
 
 if __name__ == "__main__":
-	try:
+		import os
 		from selenium import webdriver
 		from selenium.webdriver.chrome.options import Options
+		from selenium.webdriver.chrome.service import Service
 		from webdriver_manager.chrome import ChromeDriverManager
 		chrome_options = Options()
-		# chrome_options.add_argument("--headless")
+		chrome_options.add_argument("--headless")
 		chrome_options.add_argument("log-level=3")
 		chrome_options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en_US'})
-		driver = webdriver.Chrome(ChromeDriverManager().install(),options=chrome_options)
+		driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()),options=chrome_options)
 		driver.get("https://www.google.com/recaptcha/api2/demo")
 		Test = CaptchaExtractorSelenium(driver,captchaType=CaptchaType.recaptcha)
 		time.sleep(1)
@@ -106,8 +110,6 @@ if __name__ == "__main__":
 		driver.get("https://linustechtips.com/register")
 		Test = CaptchaExtractorSelenium(driver,captchaType=CaptchaType.recaptcha)
 		time.sleep(1)
-	except Exception as e:
-		print(e)
 
 
 

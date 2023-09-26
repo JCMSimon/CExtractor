@@ -1,8 +1,7 @@
 import time
-from typing import Type
+import random
 
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -16,28 +15,23 @@ class CaptchaType:
 	funcaptcha = "funcaptcha"
 
 class CaptchaExtractorSelenium():
-	def __init__(self,driver,imagePath="%temp%",captchaType=CaptchaType.detect,timeout_per_step=10) -> None:
+	def __init__(self,driver,captchaType=CaptchaType.detect,timeout=10) -> None:
 		# Check if driver is an actual selenium driver
 		if not isinstance(driver,(webdriver.Chrome,webdriver.ChromiumEdge,webdriver.Edge,webdriver.Firefox,webdriver.Ie,webdriver.Safari)):
 			raise TypeError("driver has to be a selenium webdriver")
 		# Check if the language is set to english
-		if _ := str(driver.execute_script("return navigator.language")).lower() != "en":
+		if _ := str(driver.execute_script("return navigator.language")).lower() in ["en","en,en_US","en_US"]:
 			print("[WARNING] Default Browser Language is not english. Unexpected behaviour is likely to occur.")
 			time.sleep(2) # give the user time to react
 		self.driver = driver
-		self.timeout = timeout_per_step
-		self.imagePath = imagePath
+		self.timeout = timeout
 		self.captcha = self.detectCaptcha() if captchaType == CaptchaType.detect else captchaType
 		self.extract()
 
 	def extract(self):
 		match self.captcha:
 			case CaptchaType.recaptcha:
-				# Prompt can be anything in text.
-				# Grid can be 3x3 or 4x4.
-				# After Solving a solveCheck is needed to determine if its solved or not
-				# prompt,grid = self.extract_reCAPTCHA()
-				self.extract_reCAPTCHA()
+				challenge = self.extract_reCAPTCHA()
 			case CaptchaType.hcaptcha:
 				# Prompt can be anything in text.
 				# Grid can be 3x3
@@ -57,35 +51,20 @@ class CaptchaExtractorSelenium():
 				raise NotImplementedError("Captcha type 'detect' is not avialable yet")
 			case _:
 				raise NotImplementedError(f"Captcha of type {self.captcha} is unsupported")
+		challenge.screenshot(f"./{self.captcha}{random.randint(0,9999)}.png")
 
-	def extract_reCAPTCHA(self) -> tuple[str, tuple[Type[int], Type[int]]] | None:
-		# click captcha box (its in a frame idk)
-		driver.switch_to.frame(0)
-		try:
-			captcha = WebDriverWait(driver, self.timeout).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".recaptcha-checkbox-border"))).click()
-			time.sleep(5)
-		except TimeoutException:
-			print("didnt work")
-			return None
-		# switch back
-		driver.switch_to.parent_frame()
-		driver.maximize_window()
-		# get the right iframe
-		iframes = driver.find_elements(By.XPATH,"//iframe")
-		iframeIWant = [iframe for iframe in iframes if "captcha" in iframe.accessible_name.lower()]
-		driver.switch_to.frame(2)
-		whatiwantasimg = driver.find_elements(By.TAG_NAME,"div")
-		with open('img.txt', 'w') as f:
-			f.write(whatiwantasimg[0].screenshot_as_base64)
-		input("Im waiting now")
-
-
-
-
-
+	def extract_reCAPTCHA(self):
+		WebDriverWait(self.driver, self.timeout).until(lambda driver: len([iframe for iframe in self.driver.find_elements(By.XPATH,"//iframe") if "recaptcha" in str(iframe.accessible_name).lower()]) > 0)
+		iframeCount = len([iframe for iframe in self.driver.find_elements(By.XPATH,"//iframe")])
+		clickThis = [iframe for iframe in self.driver.find_elements(By.XPATH,"//iframe") if "recaptcha" in str(iframe.accessible_name).lower()][0]
+		time.sleep(2)
+		clickThis.click()
+		time.sleep(2)
+		challengeFrame = [iframe for iframe in driver.find_elements(By.XPATH,"//iframe") if "challenge" in str(iframe.accessible_name).lower()][0]
+		return challengeFrame
+		
 
 if __name__ == "__main__":
-		import os
 		from selenium import webdriver
 		from selenium.webdriver.chrome.options import Options
 		from selenium.webdriver.chrome.service import Service
